@@ -1,0 +1,6 @@
+mqtt:
+  address: tcp://your/mqtt/server/ip:1883
+  qos: 1
+  user: client
+  subTopics: server/to/client
+  pubTopics: client/to/server
