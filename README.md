@@ -2,7 +2,7 @@
 
 ## server
 
-修改 `./temp.txt` 发送代码给 client 端剪切板
+修改 `./temp.txt` 发送文本给 client 端剪切板
 
 - 启动
 
@@ -25,3 +25,11 @@
 一般不用修改。
 
 也可以使用自己搭建的 mosquitto 服务器。
+
+
+
+## TODO
+
+- 连接管理功能
+
+- server 私发给 client
