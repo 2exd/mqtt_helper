@@ -26,7 +26,15 @@
 
 也可以使用自己搭建的 mosquitto 服务器。
 
+## 编译
 
+```shell
+$OS_ARCH="windows"
+$env:GOOS=${OS_ARCH}
+$env:GOARCH="amd64"
+
+go build -ldflags "-s -w" -o ./helper.exe ./main.go
+```
 
 ## TODO
 

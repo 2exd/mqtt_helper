@@ -190,7 +190,6 @@ loop:
 	for {
 		select {
 		case img := <-utils.ImgChan:
-
 			// 将 *image.RGBA 转换为字节数组
 			var data bytes.Buffer
 			err := png.Encode(&data, img)
