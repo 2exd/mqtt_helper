@@ -21,10 +21,11 @@ type OpCode int
 
 const (
 	// 连接控制消息操作代码
-	Login  OpCode = 1
-	Logout OpCode = 2
-	Ping   OpCode = 3
-	Pong   OpCode = 4
+	Login      OpCode = 1
+	Logout     OpCode = 2
+	Ping       OpCode = 3
+	Pong       OpCode = 4
+	ServerDown OpCode = 5
 
 	// 消息传输消息操作代码
 	SendScreenshot OpCode = 1
@@ -41,29 +42,46 @@ type MqttMessage struct {
 	Data     string      `json:"data"`
 }
 
+var responseCh = make(chan struct{})
+
 func ConnectionControl(msg MqttMessage) {
 	nameAtIP := constants.GetNameAtIP(msg.Username, msg.IP)
 	nameIP := constants.GetNameIP(msg.Username, msg.IP)
 	switch msg.OpCode {
 	case Login:
-		log.Logger.Infof("client login from %s", nameAtIP)
-		// map 添加 client
-		go AddOrUpdateClient(nameIP)
+		cMap := GetClientMapInstance()
+		info, ok := cMap.Data[nameIP]
 		// 订阅私有话题
-		SubscribePrivateTopic(nameIP, GetMqttServerInstance())
+		if !ok || !info.IsOnline {
+			log.Logger.Infof("client login from %s", nameAtIP)
+		}
+		if !ok {
+			SubscribePrivateTopic(nameIP, GetMqttServerInstance())
+		}
+		// map 添加 client
+		AddOrUpdateClient(nameIP)
+
 	case Logout:
 		log.Logger.Infof("client logout from %s.", nameAtIP)
 		// map 删除 client
-		go DeleteClient(nameIP)
+		DeleteClient(nameIP)
 		// 取消订阅私有话题
 		UnsubscribePrivateTopic(nameIP, GetMqttServerInstance())
+
 	case Ping:
 		log.Logger.Debugf("receive ping from %s.", nameAtIP)
-		go AddOrUpdateClient(nameIP)
+		AddOrUpdateClient(nameIP)
 		ms := GetMqttServerInstance()
 		go ms.PublishPong(nameIP)
+
 	case Pong:
 		log.Logger.Debugf("receive pong from %s.", nameAtIP)
+		// 发送回应通知到通道
+		responseCh <- struct{}{}
+
+	case ServerDown:
+		log.Logger.Infof("Server down, receive msg from %s.", nameAtIP)
+
 	default:
 		log.Logger.Infof("暂不支持的消息类型！type=%d, opCode = %d", ConnectControl, msg.OpCode)
 	}

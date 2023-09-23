@@ -1,6 +1,8 @@
 package utils
 
-import hook "github.com/robotn/gohook"
+import (
+	hook "github.com/robotn/gohook"
+)
 
 func StartHook() {
 	GetClipBoard()

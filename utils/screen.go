@@ -7,20 +7,13 @@ import (
 	"image"
 	"image/png"
 	"os"
-	"time"
 )
 
 func GetScreen() {
-	fmt.Println("--- Please press 1+2+3 to send screenshot ---")
+	fmt.Println("--- 快捷键 1+2+3 发送屏幕截图给 server 端 ---")
 	hook.Register(hook.KeyDown, []string{"1", "2", "3"}, func(e hook.Event) {
-		fmt.Println("1+2+3")
 		ScreenshotFunc()
-	})
-
-	fmt.Println("--- Please press ctrl + shift + q to stop screenshot ---")
-	hook.Register(hook.KeyDown, []string{"q", "ctrl", "shift"}, func(e hook.Event) {
-		fmt.Println("ctrl-shift-q")
-		hook.End()
+		fmt.Printf("%s, 截图已发送~\n", GetHhmmss())
 	})
 }
 
@@ -33,14 +26,11 @@ func ScreenshotFunc() {
 			panic(err)
 		}
 		ImgChan <- img
-		// SaveScreen(img)
 	}
 }
 
 func SaveScreen(img *image.RGBA, baseName string) {
-	currentTime := time.Now()
-	formattedTime := currentTime.Format("15_04_05")
-	fileName := fmt.Sprintf("%s_%s.png", baseName, formattedTime)
+	fileName := fmt.Sprintf("%s_%s.png", baseName, GetHh_mm_ss())
 	file, _ := os.Create(fileName)
 	err := png.Encode(file, img)
 	if err != nil {
@@ -58,5 +48,5 @@ func SaveScreen(img *image.RGBA, baseName string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s\n", fileName)
+	fmt.Printf("%s 截图已保存\n", fileName)
 }

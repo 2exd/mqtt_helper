@@ -25,6 +25,8 @@ var (
 	privatePubTopic string // eg:client/client_192.168.150.1/server
 
 	mc *MqttClient
+
+	ServerStatus = false
 )
 
 type MqttClient struct {
@@ -164,7 +166,7 @@ func (c *MqttClient) PublishConnect() {
 	}
 	jsonMarshal, _ := json.Marshal(text)
 	token := c.Client.Publish(constants.CLIENT_TOPIC, byte(c.Qos), false, jsonMarshal)
-	log.Logger.Infof("Login msg. Send topic %s, OpCode is %d", constants.CLIENT_TOPIC, Login)
+	log.Logger.Debugf("Login msg. Send topic %s, OpCode is %d", constants.CLIENT_TOPIC, Login)
 	token.Wait()
 }
 
@@ -192,8 +194,24 @@ func (c *MqttClient) PublishPing() {
 	}
 	jsonMarshal, _ := json.Marshal(text)
 	token := c.Client.Publish(privatePubTopic, byte(c.Qos), false, jsonMarshal)
-	log.Logger.Debugf("Send topic %s, OpCode is %d", privatePubTopic, Ping)
+	log.Logger.Debugf("Ping msg, Send topic %s, OpCode is %d", privatePubTopic, Ping)
 	token.Wait()
+
+	// 启动计时器
+	pingTimerCh := time.After(10 * time.Second)
+
+	// 在单独的 goroutine 中等待计时器到期或回应
+	select {
+	case <-pingTimerCh:
+		log.Logger.Info("No server available!")
+		ServerStatus = false
+	case <-responseCh:
+		log.Logger.Debugf("Server responsed!")
+		if !ServerStatus {
+			log.Logger.Info("Server is online!")
+			ServerStatus = true
+		}
+	}
 }
 
 // PublishScreenshot 发送截图
@@ -251,11 +269,21 @@ func (c *MqttClient) Run(ctx context.Context) error {
 	go utils.StartHook()
 
 	// connect
-	c.PublishConnect()
+	go func() {
+		c.PublishConnect()
+		connectTicker := time.NewTicker(10 * time.Second)
+		defer connectTicker.Stop()
+		for {
+			select {
+			case <-connectTicker.C:
+				c.PublishConnect()
+			}
+		}
+	}()
 
-	pingTicker := time.NewTicker(10 * time.Second)
+	go c.PublishPing()
+	pingTicker := time.NewTicker(5 * time.Second)
 	defer pingTicker.Stop()
-
 loop:
 	for {
 		select {

@@ -1,4 +1,8 @@
-使用 mosquitto 作为消息中转服务
+# 基于MQTT的聊天室
+
+<u>特别提醒：该内容仅供个人娱乐所用，请勿将其用于任何违反法律的用途，一旦出现问题本人概不负责。</u>
+
+基于 [MQTT](https://mqtt.org/) 协议，使用 [mosquitto](https://mosquitto.org/) 服务器提供消息中转服务。
 
 ## server
 
@@ -25,6 +29,8 @@
 ## 配置文件
 
 一般不用修改。
+
+测试用 mqtt 服务器地址 `tcp://124.221.165.250:1883`
 
 也可以使用自己搭建的 mosquitto 服务器。
 
@@ -63,6 +69,4 @@ docker run -it -p 1883:1883 -v /root/docker_files/mosquitto:/mosquitto/config -v
 
 ## TODO
 
-- 连接管理功能
-
-- server 私发给 client
+- server 私信 client

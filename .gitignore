@@ -18,6 +18,7 @@
 .openai-token
 .idea
 bin
+log
 *.yaml
 *.log
 *.zip

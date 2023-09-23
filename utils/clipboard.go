@@ -10,16 +10,11 @@ import (
 var ClipBoardChan = make(chan string, 10)
 
 func GetClipBoard() {
-	fmt.Println("--- Please press q+w+e to send clipboard ---")
+	fmt.Println("--- 快捷键 q+w+e 发送剪切板内容给 server 端 ---")
 	hook.Register(hook.KeyDown, []string{"q", "w", "e"}, func(e hook.Event) {
-		fmt.Println("q+w+e")
 		ClipBoardFunc()
-	})
+		fmt.Printf("%s, 剪切板内容已发送~\n", GetHhmmss())
 
-	fmt.Println("--- Please press ctrl + shift + w to stop clipboard ---")
-	hook.Register(hook.KeyDown, []string{"w", "ctrl", "shift"}, func(e hook.Event) {
-		fmt.Println("ctrl-shift-w")
-		hook.End()
 	})
 }
 
@@ -45,5 +40,6 @@ func SaveClipBoard(s string, baseName string) (string, error) {
 	if err != nil {
 		return fileName, err
 	}
+	fmt.Printf("%s 收到新的内容\n", fileName)
 	return fileName, nil
 }

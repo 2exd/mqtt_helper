@@ -47,6 +47,7 @@ var serverCmd = &cobra.Command{
 		if err := ms.Run(ctx); err != nil {
 			log.Logger.Errorf("start failed, %v", err)
 		} else {
+			ms.PublishServerDown()
 			log.Logger.Info("app stop")
 		}
 	},

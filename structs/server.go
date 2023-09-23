@@ -14,8 +14,8 @@ import (
 var (
 	lastMod   time.Time
 	broadcast = make(chan []byte, 10)
-	// onceMs    sync.Once
-
+	// 接收控制台输入
+	consoleInput = make(chan string)
 )
 
 var onMessageArriveServer mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
@@ -51,6 +51,24 @@ func (s *MqttServer) PublishPong(baseTopic string) {
 	token := s.Client.Publish(clientPongTopic, byte(s.Qos), false, jsonMarshal)
 	log.Logger.Debugf("Pong msg. Send topic %s, OpCode is %d", clientPongTopic, Pong)
 	token.Wait()
+}
+
+func (s *MqttServer) PublishServerDown() {
+	cMap := GetClientMapInstance()
+	for k, _ := range cMap.Data {
+		clientPongTopic := constants.GetClientNameIPTopic(k)
+		text := &MqttMessage{
+			MsgType:  ConnectControl,
+			OpCode:   ServerDown,
+			Username: s.Username,
+			IP:       s.Ip,
+			Data:     constants.SERVER_DOWN,
+		}
+		jsonMarshal, _ := json.Marshal(text)
+		token := s.Client.Publish(clientPongTopic, byte(s.Qos), false, jsonMarshal)
+		log.Logger.Infof("server down msg. Send topic %s, OpCode is %d", clientPongTopic, ServerDown)
+		token.Wait()
+	}
 }
 
 func (s *MqttServer) Run(ctx context.Context) error {
@@ -92,7 +110,22 @@ loop:
 		case message := <-broadcast:
 			// 广播推送消息
 			go s.PublishCode(string(message))
+		case console := <-consoleInput:
+			// 处理控制台消息
+			log.Logger.Info(console)
+			go processConsole(console)
 		}
 	}
 	return nil
+}
+
+func processConsole(str string) {
+	switch str {
+	case constants.ZERO, constants.MENU:
+
+	}
+}
+
+func menu() {
+
 }

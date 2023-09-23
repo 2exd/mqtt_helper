@@ -26,10 +26,16 @@ var (
 	IP       = "ip"
 	DATA     = "data"
 
-	LOGIN  = "login"
-	PING   = "ping"
-	PONG   = "poing"
-	LOGOUT = "logout"
+	LOGIN       = "login"
+	PING        = "ping"
+	PONG        = "pong"
+	LOGOUT      = "logout"
+	SERVER_DOWN = "server down"
+)
+
+var (
+	MENU = "menu"
+	ZERO = "0"
 )
 
 func GetNameIP(name, ip string) string {

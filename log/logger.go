@@ -4,6 +4,7 @@ import (
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
 	"time"
 )
 
@@ -22,6 +23,7 @@ func InitLogger() {
 	var level zapcore.Level
 
 	logLevel := "info"
+	// logLevel := "debug"
 
 	switch logLevel {
 	case "debug":
@@ -41,9 +43,9 @@ func InitLogger() {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		// 打印到控制台和文件
-		// zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)),
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)),
 		// 打印到文件
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(&hook)),
+		// zapcore.NewMultiWriteSyncer(zapcore.AddSync(&hook)),
 		level,
 	)
 
