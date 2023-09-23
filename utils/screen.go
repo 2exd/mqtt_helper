@@ -38,7 +38,9 @@ func ScreenshotFunc() {
 }
 
 func SaveScreen(img *image.RGBA, baseName string) {
-	fileName := fmt.Sprintf("%s_%d.png", baseName, time.Now().UnixNano())
+	currentTime := time.Now()
+	formattedTime := currentTime.Format("15_04_05")
+	fileName := fmt.Sprintf("%s_%s.png", baseName, formattedTime)
 	file, _ := os.Create(fileName)
 	err := png.Encode(file, img)
 	if err != nil {
