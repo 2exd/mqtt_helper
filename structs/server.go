@@ -3,6 +3,7 @@ package structs
 import (
 	"context"
 	"encoding/json"
+	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"mqtt_helper/conf"
 	"mqtt_helper/constants"
 	"mqtt_helper/log"
@@ -10,41 +11,61 @@ import (
 	"time"
 )
 
-var lastMod time.Time
+var (
+	lastMod   time.Time
+	broadcast = make(chan []byte, 10)
+	// onceMs    sync.Once
 
-var broadcast = make(chan []byte, 10)
+)
 
-type MqttServer struct {
-	*MqttClient
+var onMessageArriveServer mqtt.MessageHandler = func(client mqtt.Client, msg mqtt.Message) {
+	// MsgArr <- true
+	log.Logger.Debugf("Message arrived! TOPIC: %s, MSG: %s", msg.Topic(), msg.Payload())
+	go parseMessage(msg)
 }
 
-var Ms *MqttServer
-
-func (c *MqttServer) publishCode(data string) {
+func (s *MqttServer) PublishCode(data string) {
 	text := &MqttMessage{
 		MsgType:  MessageTransfer,
 		OpCode:   SendCode,
-		Username: c.Username,
-		IP:       c.Ip,
+		Username: s.Username,
+		IP:       s.Ip,
 		Data:     data,
 	}
 	jsonMarshal, _ := json.Marshal(text)
-	token := c.Client.Publish(constants.SERVER_ALL_CLIENT, byte(c.Qos), false, jsonMarshal)
+	token := s.Client.Publish(constants.SERVER_ALL_CLIENT, byte(s.Qos), false, jsonMarshal)
 	log.Logger.Infof("Send topic %s, msg is: %s", constants.SERVER_ALL_CLIENT, jsonMarshal)
 	token.Wait()
 }
 
-func (c *MqttServer) Run(ctx context.Context) error {
+func (s *MqttServer) PublishPong(baseTopic string) {
+	clientPongTopic := constants.GetClientNameIPTopic(baseTopic)
+	text := &MqttMessage{
+		MsgType:  ConnectControl,
+		OpCode:   Pong,
+		Username: s.Username,
+		IP:       s.Ip,
+		Data:     constants.PONG,
+	}
+	jsonMarshal, _ := json.Marshal(text)
+	token := s.Client.Publish(clientPongTopic, byte(s.Qos), false, jsonMarshal)
+	log.Logger.Debugf("Pong msg. Send topic %s, OpCode is %d", clientPongTopic, Pong)
+	token.Wait()
+}
+
+func (s *MqttServer) Run(ctx context.Context) error {
 	config = conf.GetConfig()
-	c.ClientInit()
-	c.ConnectBroker()
-	c.SubscribeTopics()
+	s.ClientInit()
+	s.ConnectBroker()
+	s.SubscribeTopics()
 
 	lastMod = time.Now()
 
 	fileTicker := time.NewTicker(5 * time.Second)
 	defer fileTicker.Stop()
 	var err error
+
+	go CheckOnline()
 
 	go func() {
 		for {
@@ -70,7 +91,7 @@ loop:
 			}
 		case message := <-broadcast:
 			// 广播推送消息
-			go c.publishCode(string(message))
+			go s.PublishCode(string(message))
 		}
 	}
 	return nil

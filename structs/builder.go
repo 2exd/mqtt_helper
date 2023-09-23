@@ -5,7 +5,24 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 
+var (
+	ms *MqttServer
+)
+
+type MqttServer struct {
+	*MqttClient
+}
 type MqttClientBuilder = func(mqttClient *MqttClient)
+
+type MqttServerBuilder = func(mqttServer *MqttServer)
+
+func NewMqttServer(builder ...MqttClientBuilder) (*MqttServer, error) {
+	mc, _ := NewMqttClient(builder...)
+	ms = &MqttServer{
+		MqttClient: mc,
+	}
+	return ms, nil
+}
 
 func PubTopics(pubTopics []string) MqttClientBuilder {
 	return func(client *MqttClient) {
@@ -20,17 +37,25 @@ func SubTopics(subTopics []string) MqttClientBuilder {
 }
 
 func NewMqttClient(builder ...MqttClientBuilder) (*MqttClient, error) {
-	var client = &MqttClient{
+	mc = &MqttClient{
 		Opts: mqtt.NewClientOptions(),
 	}
 	for i := range builder {
-		builder[i](client)
+		builder[i](mc)
 	}
-	if len(client.PubTopics) == 0 {
+	if len(mc.PubTopics) == 0 {
 		return nil, fmt.Errorf("missing publish topics")
 	}
-	if len(client.SubTopics) == 0 {
+	if len(mc.SubTopics) == 0 {
 		return nil, fmt.Errorf("missing subscribe topics")
 	}
-	return client, nil
+	return mc, nil
+}
+
+func GetMqttServerInstance() *MqttServer {
+	return ms
+}
+
+func GetMqttClientInstance() *MqttClient {
+	return mc
 }

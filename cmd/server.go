@@ -30,7 +30,7 @@ var serverCmd = &cobra.Command{
 		config := conf.GetConfig()
 
 		// 初始化 mqtt client
-		structs.Ms, err = structs.NewMqttServer(
+		_, err = structs.NewMqttServer(
 			structs.PubTopics(config.PubTopics),
 			structs.SubTopics(config.SubTopics),
 		)
@@ -43,7 +43,8 @@ var serverCmd = &cobra.Command{
 		var ctx, stop = signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 		defer stop()
 
-		if err := structs.Ms.Run(ctx); err != nil {
+		ms := structs.GetMqttServerInstance()
+		if err := ms.Run(ctx); err != nil {
 			log.Logger.Errorf("start failed, %v", err)
 		} else {
 			log.Logger.Info("app stop")

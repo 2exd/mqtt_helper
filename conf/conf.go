@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-type Config struct {
+type ConfigStruct struct {
 	MqttAddr     string
 	MqttQos      int
 	MqttUser     string
@@ -17,7 +17,7 @@ type Config struct {
 }
 
 var (
-	AppConfig *Config
+	AppConfig *ConfigStruct
 	once      sync.Once
 )
 
@@ -28,7 +28,7 @@ func initializeConfig() {
 	}
 
 	// 初始化 AppConfig
-	AppConfig = &Config{
+	AppConfig = &ConfigStruct{
 		MqttAddr:     viper.GetString("mqtt.address"),
 		MqttQos:      viper.GetInt("mqtt.qos"),
 		MqttUser:     viper.GetString("mqtt.user"),
@@ -38,7 +38,7 @@ func initializeConfig() {
 	}
 }
 
-func GetConfig() *Config {
+func GetConfig() *ConfigStruct {
 	once.Do(func() {
 		initializeConfig()
 	})
