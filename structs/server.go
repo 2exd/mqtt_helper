@@ -59,7 +59,11 @@ func (c *MqttServer) Run(ctx context.Context) error {
 loop:
 	for {
 		select {
+		case <-ctx.Done():
+			// 跳出 retry 循环
+			break loop
 		case <-fileTicker.C:
+			// 文件监控
 			lastMod, err = utils.ReadFileIfModified(lastMod, constants.TEMP_FILE)
 			if err != nil {
 				log.Logger.Error(err)
@@ -67,9 +71,6 @@ loop:
 		case message := <-broadcast:
 			// 广播推送消息
 			go c.publishCode(string(message))
-		case <-ctx.Done():
-			// 跳出 retry 循环
-			break loop
 		}
 	}
 	return nil

@@ -22,8 +22,6 @@ func GetScreen() {
 		fmt.Println("ctrl-shift-q")
 		hook.End()
 	})
-	s := hook.Start()
-	<-hook.Process(s)
 }
 
 func ScreenshotFunc() {

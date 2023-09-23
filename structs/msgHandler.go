@@ -21,10 +21,13 @@ const (
 	// 连接控制消息操作代码
 	Login  OpCode = 1
 	Logout OpCode = 2
+	Ping   OpCode = 3
+	Pong   OpCode = 4
 
 	// 消息传输消息操作代码
 	SendScreenshot OpCode = 1
 	SendCode       OpCode = 2
+	SendClipboard  OpCode = 3
 )
 
 // MqttMessage 表示交互协议中的消息
@@ -49,6 +52,14 @@ func MsgTransfer(msg MqttMessage) {
 	case SendCode:
 		log.Logger.Infof("receive code from %s@%s. message:\n%s", msg.Username, msg.IP, msg.Data)
 		clipboard.WriteAll(msg.Data)
+	case SendClipboard:
+		log.Logger.Infof("receive code from %s@%s. message:\n%s", msg.Username, msg.IP, msg.Data)
+		fileName, err := utils.SaveClipBoard(msg.Data, msg.Username+"_"+msg.IP)
+		if err != nil {
+			log.Logger.Error(err)
+		}
+		log.Logger.Infof("%s\n", fileName)
+
 	default:
 		log.Logger.Infof("暂不支持的消息类型！opCode = %d", msg.OpCode)
 	}

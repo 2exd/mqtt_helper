@@ -2,7 +2,7 @@
 
 ## server
 
-修改 `./temp.txt` 发送文本给 client 端剪切板
+修改 `./temp.txt` 广播发送文本给 client 端剪切板
 
 - 启动
 
@@ -12,7 +12,9 @@
 
 ## client
 
-快捷键 `1+2+3` 截图发送给 server
+快捷键 `1+2+3` 屏幕截图发送给 server
+
+快捷键 `q+w+e` 将剪切板内容发送给 server
 
 - 启动
 
